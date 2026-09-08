@@ -1,0 +1,73 @@
+% =====================================================================
+%  qBOUNCE — the processing chain as eight stages, drawn in the manner of
+%  Filter (2018) figure 6.13: what the data IS at each point and what it
+%  becomes, as opposed to architecture_graphs.tex, which says which file
+%  calls which. The two views are deliberately kept apart.
+%
+%  The thumbnail in each box is made from the real data by
+%  make_flow_thumbnails.py, not drawn as an icon; stages 1 to 4 all show the
+%  same 256x256 corner of the same frames, so one patch of sensor can be
+%  followed from raw pixels to a labelled cluster.
+%
+%  Requires: tikz with arrows.meta, positioning, calc; graphicx.
+% =====================================================================
+
+\newcommand{\qbFlowBox}[5]{%
+  % #1 name  #2 x  #3 y  #4 title  #5 note
+  \node[stage] (#1) at (#2,#3) {};
+  \node[stitle] at (#2,#3+13.5) {#4};
+  \node[snote]  at (#2,#3-13.5) {#5};
+}
+
+\newcommand{\qbDataFlow}{%
+\begin{tikzpicture}[x=1mm,y=1mm,
+    stage/.style   = {rectangle, rounded corners=2.5pt, draw=black!55,
+                      fill=black!4, minimum width=36mm, minimum height=36mm,
+                      inner sep=2pt, align=center},
+    stitle/.style  = {font=\small\bfseries},
+    snote/.style   = {font=\scriptsize, text=black!65, align=center},
+    flow/.style    = {-{Stealth[length=2.6mm,width=2.2mm]}, line width=1.1pt,
+                      draw=black!75}]
+
+  \def\dx{46}
+  \def\rowa{0}
+  \def\rowb{-58}
+
+  % ── row 1: dark frames -> model -> threshold -> clusters ────────────────
+  \qbFlowBox{a0}{0*\dx}{\rowa}{dark frames}{500 images, beam off\\$5472\times3672$}
+  \qbFlowBox{a1}{1*\dx}{\rowa}{background model}{per-pixel $\mu$, $\sigma$\\and dead mask}
+  \qbFlowBox{a2}{2*\dx}{\rowa}{threshold}{$p>\mu+5\max(\sigma,1)$\\one bit per pixel}
+  \qbFlowBox{a3}{3*\dx}{\rowa}{clusters}{connected\\components}
+  \foreach \i/\f in {0/s1_dark, 1/s2_model, 2/s3_threshold, 3/s4_clusters}
+    \node at (\i*\dx,\rowa+1) {\includegraphics[width=17mm]{figures_flow/\f.png}};
+  \draw[flow] (a0) -- (a1);
+  \draw[flow] (a1) -- (a2);
+  \draw[flow] (a2) -- (a3);
+
+  % ── row 2: measurements -> labels -> classifier -> analysis ─────────────
+  \qbFlowBox{b0}{0*\dx}{\rowb}{measurements}{20 columns\\per cluster}
+  \qbFlowBox{b1}{1*\dx}{\rowb}{hand labels}{200 verdicts,\\three classes}
+  \qbFlowBox{b2}{2*\dx}{\rowb}{classifier}{random forest,\\10 features}
+  \qbFlowBox{b3}{3*\dx}{\rowb}{analysis}{rates, arrival map,\\deposited charge}
+  \foreach \i/\f in {0/s5_measure, 1/s6_labels, 2/s7_classify, 3/s8_analysis}
+    \node at (\i*\dx,\rowb+1) {\includegraphics[width=17mm]{figures_flow/\f.png}};
+  \draw[flow] (b0) -- (b1);
+  \draw[flow] (b1) -- (b2);
+  \draw[flow] (b2) -- (b3);
+
+  % the beam-on frames enter at the threshold, not at the head of the chain
+  \node[stage, fill=orange!7, draw=orange!60!black,
+        minimum height=11mm, minimum width=30mm] (sig) at (2*\dx, \rowa+34) {};
+  \node[stitle] at (2*\dx, \rowa+36) {beam-on frames};
+  \node[snote]  at (2*\dx, \rowa+31.5) {1500 images};
+  \draw[flow, draw=orange!65!black] (sig) -- (a2);
+
+  % wrap-around from the end of row 1 to the start of row 2
+  \draw[flow] (a3.east) -- ++(9,0) |- (0,\rowa-27) -| (b0.north);
+
+  % the one place a human is required
+  \draw[draw=black!45, dashed, line width=0.5pt] (1*\dx, \rowb-18.5) -- (1*\dx, \rowb-21);
+  \node[snote, text=black!75, anchor=north] at (1*\dx, \rowb-21)
+        {\itshape the only stage that cannot be automated};
+
+\end{tikzpicture}}

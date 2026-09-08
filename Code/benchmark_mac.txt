@@ -1,0 +1,38 @@
+==============================================================================
+  DETECTOR BENCHMARK
+==============================================================================
+  when      : 2026-07-29T03:05:25
+  machine   : Darwin | 25.5.0 | arm64 | Apple M1
+  detector  : /Users/loicposta/Desktop/qBOUNCE/Code/build/detector
+  frames    : 500 from /Users/loicposta/Desktop/qBOUNCE/Code/Data_tot/dark/2026-07-11_3-001_background_575-6ms_2fps
+  flags     : n_sigma=5 warmup=500 dthreads=2 cthreads=4
+  repeats   : 10
+
+  run  1:   162.0 ms/img wall   serial  160.2   bg  152.7   snap   7.4   clusters 39071
+  run  2:   162.6 ms/img wall   serial  160.8   bg  153.1   snap   7.5   clusters 39071
+  run  3:   165.6 ms/img wall   serial  163.8   bg  156.1   snap   7.5   clusters 39071
+  run  4:   166.1 ms/img wall   serial  164.3   bg  156.5   snap   7.6   clusters 39071
+  run  5:   166.3 ms/img wall   serial  164.4   bg  156.7   snap   7.6   clusters 39071
+  run  6:   172.5 ms/img wall   serial  170.6   bg  162.5   snap   7.9   clusters 39071
+  run  7:   173.4 ms/img wall   serial  171.5   bg  163.4   snap   8.0   clusters 39071
+  run  8:   174.0 ms/img wall   serial  172.2   bg  164.0   snap   8.0   clusters 39071
+  run  9:   175.3 ms/img wall   serial  173.4   bg  165.2   snap   8.0   clusters 39071
+  run 10:   175.3 ms/img wall   serial  173.4   bg  165.3   snap   8.0   clusters 39071
+
+------------------------------------------------------------------------------
+  SUMMARY over 10 run(s)  --  value +/- sample standard deviation
+------------------------------------------------------------------------------
+    wall clock per frame          169.3 +/-   5.3 ms/img   ( 3.1%)
+    TOTAL serial                  167.5 +/-   5.3 ms/img   ( 3.1%)
+      bg.update (Welford)         159.6 +/-   5.0 ms/img   ( 3.1%)
+      snapshot mean+sigma           7.8 +/-   0.3 ms/img   ( 3.2%)
+        .. mean clone               3.8 +/-   0.1 ms/img   ( 3.3%)
+        .. sigma derive             4.0 +/-   0.1 ms/img   ( 3.6%)
+      waiting for loaders           0.1 +/-   0.0 ms/img   ( 0.0%)
+
+    clusters detected          39071   (identical across runs)
+
+    acquisition period            557.0 ms/img  (1.80 fps measured)
+    live-mode verdict          KEEPS UP  (167.5 +/- 5.3 vs 557 ms)
+
+  report: /Users/loicposta/Desktop/qBOUNCE/Code/benchmark_mac.txt

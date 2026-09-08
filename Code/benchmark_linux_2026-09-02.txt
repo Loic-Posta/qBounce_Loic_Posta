@@ -1,0 +1,38 @@
+==============================================================================
+  DETECTOR BENCHMARK
+==============================================================================
+  when      : 2026-09-02T01:41:13
+  machine   : Linux | 6.17.9-76061709-generic | x86_64
+  detector  : ./build/detector
+  frames    : 500 from /home/loicposta/qbounce-linux/perf_dark
+  flags     : n_sigma=5 warmup=500 dthreads=2 cthreads=4
+  repeats   : 10
+
+  run  1:   352.2 ms/img wall   serial  350.6   bg  332.4   snap  18.0   clusters 39071
+  run  2:   358.7 ms/img wall   serial  356.8   bg  337.8   snap  18.8   clusters 39071
+  run  3:   350.9 ms/img wall   serial  349.0   bg  331.5   snap  17.3   clusters 39071
+  run  4:   366.8 ms/img wall   serial  364.9   bg  344.1   snap  20.6   clusters 39071
+  run  5:   334.7 ms/img wall   serial  332.7   bg  315.2   snap  17.4   clusters 39071
+  run  6:   517.3 ms/img wall   serial  515.4   bg  440.3   snap  74.8   clusters 39071
+  run  7:   426.6 ms/img wall   serial  424.7   bg  378.6   snap  45.9   clusters 39071
+  run  8:   351.6 ms/img wall   serial  349.7   bg  332.3   snap  17.3   clusters 39071
+  run  9:   325.7 ms/img wall   serial  323.8   bg  306.1   snap  17.5   clusters 39071
+  run 10:   332.9 ms/img wall   serial  330.9   bg  313.0   snap  17.8   clusters 39071
+
+------------------------------------------------------------------------------
+  SUMMARY over 10 run(s)  --  value +/- sample standard deviation
+------------------------------------------------------------------------------
+    wall clock per frame          371.7 +/-  58.3 ms/img   (15.7%)
+    TOTAL serial                  369.9 +/-  58.3 ms/img   (15.8%)
+      bg.update (Welford)         343.1 +/-  39.7 ms/img   (11.6%)
+      snapshot mean+sigma          26.5 +/-  19.1 ms/img   (72.0%)
+        .. mean clone              11.4 +/-   8.9 ms/img   (77.9%)
+        .. sigma derive            15.2 +/-  12.0 ms/img   (79.5%)
+      waiting for loaders           0.2 +/-   0.0 ms/img   (15.1%)
+
+    clusters detected          39071   (identical across runs)
+
+    acquisition period            557.0 ms/img  (1.80 fps measured)
+    live-mode verdict          KEEPS UP  (369.9 +/- 58.3 vs 557 ms)
+
+  report: /home/loicposta/qbounce-linux/benchmark_linux.txt

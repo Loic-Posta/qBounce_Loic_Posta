@@ -1,0 +1,58 @@
+% =====================================================================
+%  qBOUNCE — detector cross-section, drawn as the direct counterpart of
+%  Filter (2018), figure 8.3, so the two can be read side by side.
+%
+%  His figure:  neutron -> 10B -> (Li, alpha) -> structural defects in a
+%               CR39 polymer, etched for 5 h and then scanned under a
+%               microscope, image by image.
+%  This one:    the same capture and the same two daughters, but the one
+%               that enters the silicon ionises it, and the charge is
+%               collected by the pixels it crossed and read out with the
+%               frame -- no chemistry, no scan.
+%
+%  Requires in the preamble: tikz with arrows.meta, positioning, calc.
+% =====================================================================
+
+\newcommand{\qbDetectorCMOS}{%
+\begin{tikzpicture}[x=1mm,y=1mm,>={Stealth[length=2mm]}]
+
+  % ── layers ──────────────────────────────────────────────────────────
+  \fill[brown!22]  (0,12) rectangle (80,22);          % boron-10 converter
+  \draw[black!60]  (0,12) rectangle (80,22);
+  \node[font=\small, anchor=west] at (2,17) {$^{10}$Boron};
+
+  \draw[black!70, line width=0.6pt] (0,11.5) -- (80,11.5);   % interface
+
+  \fill[blue!10]   (0,-12) rectangle (80,11.5);       % silicon photodiode array
+  \draw[black!60]  (0,-12) rectangle (80,11.5);
+  \node[font=\small, anchor=west] at (2,-9) {CMOS sensor};
+
+  \foreach \x in {0,5,...,80} \draw[black!22, line width=0.3pt] (\x,-12) -- (\x,11.5);
+  \foreach \y in {-6,-1,4,9}  \draw[black!22, line width=0.3pt] (0,\y) -- (80,\y);
+
+  % ── the incoming neutron ────────────────────────────────────────────
+  \draw[->, black!75, line width=1.1pt] (40,33) -- (40,22.6);
+  \node[font=\small, anchor=south] at (40,33.6) {Neutron};
+
+  % ── capture, and the two daughters leaving back to back ─────────────
+  \fill[orange!85!red] (40,17) circle (1.1);
+  \node[font=\small, anchor=south west] at (41,18.2) {$(\mathrm{Li},\alpha)$};
+
+  \draw[->, orange!80!red, line width=0.9pt, dashed] (40,17) -- (36.2,23.4);
+  \node[font=\scriptsize, anchor=south east, text=black!60] at (36.4,23.6) {lost};
+
+  \draw[->, orange!80!red, line width=0.9pt] (40,17) -- (43.2,11.2);
+
+  % ── the ionisation track, and the pixels it lights up ───────────────
+  \fill[orange!50] (40,4)  rectangle (45,9);
+  \fill[orange!32] (40,-1) rectangle (45,4);
+  \fill[orange!32] (45,4)  rectangle (50,9);
+  \fill[orange!18] (40,9)  rectangle (45,11.5);
+  \draw[black!45]  (40,-1) rectangle (50,11.5);
+
+  \draw[black!80, line width=0.7pt]
+        (43.2,11.2) .. controls (44.2,8) and (44.6,5) .. (44.2,1.6);
+  \foreach \p/\q in {43.6/9.6, 44.1/7.6, 44.5/5.4, 44.5/3.2}
+      \fill[black!55] (\p,\q) circle (0.4);
+
+\end{tikzpicture}}

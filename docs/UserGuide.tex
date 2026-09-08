@@ -1,0 +1,478 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+% amssymb supplies \gtrsim (used when describing cluster charge thresholds).
+% Without it pdflatex aborts on an undefined control sequence -- which went
+% unnoticed because this guide had never actually been compiled.
+\usepackage{amsmath}
+\usepackage{amssymb}
+% The Live tab's workflow buttons are labelled (1)..(5) in the GUI, and this
+% guide names them the same way, with the same circled digits. pdflatex's utf8
+% layer has no glyph for U+2460..U+2464, so map them onto pifont's circled
+% digits rather than rewriting every mention as plain text.
+\usepackage{pifont}
+\DeclareUnicodeCharacter{2460}{\ding{172}}
+\DeclareUnicodeCharacter{2461}{\ding{173}}
+\DeclareUnicodeCharacter{2462}{\ding{174}}
+\DeclareUnicodeCharacter{2463}{\ding{175}}
+\DeclareUnicodeCharacter{2464}{\ding{176}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, urlcolor=blue!60!black}
+\newcommand{\param}[1]{\texttt{\textbf{#1}}}
+\newcommand{\gui}[1]{\textsf{#1}}
+
+\title{qBOUNCE CMOS Neutron Detector\\\large Pipeline \& Live Acquisition --- User Guide}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{What this software does}
+A CMOS camera (IDS, $5472\times3672$ px, Mono8) watches a boron-10 converter
+layer. A neutron capture, $n + {}^{10}\mathrm{B} \rightarrow \alpha +
+{}^{7}\mathrm{Li}$, emits the two daughters \emph{back-to-back}: only one of
+them reaches the sensor and leaves a bright, compact track ($\geq$ 5\,px).
+The software:
+\begin{enumerate}
+  \item learns the per-pixel noise of the sensor from dark frames
+        (\emph{background model}: mean, $\sigma$, dead-pixel map);
+  \item detects clusters of pixels above $\mathrm{mean} + n_\sigma\,\sigma$;
+  \item classifies each cluster with a machine-learning model
+        (\texttt{lithium} = heavy track, \texttt{gamma}, \texttt{artifact});
+  \item counts neutrons \emph{live}: $N_{\mathrm{neutrons}} =
+        N_{\alpha} + N_{\mathrm{Li}}$ (one daughter per capture);
+  \item estimates the deposited energy of each track
+        (\param{total\_charge} $= \sum_{\mathrm{pixels}}(\mathrm{ADU} -
+        \mathrm{background})$) and builds the $\alpha$/$^{7}$Li energy
+        spectrum;
+  \item monitors camera health (hot/dead pixels, radiation damage).
+\end{enumerate}
+
+\section{Installation on the offline Windows~10 machine}
+\textbf{Step A — on any machine WITH internet} (e.g.\ the development Mac):
+\begin{verbatim}
+python3 PrepareSetupLab.py
+\end{verbatim}
+This builds \texttt{ExportLab/} — the complete offline kit: sources, GUI,
+docs, the trained classifier, every Python wheel for Windows (including
+\texttt{cmake} and \texttt{ninja} as pip wheels), the prebuilt OpenCV C++
+package, and a generated \texttt{cpp\_requirements.txt} manifest (parsed from
+\texttt{CMakeLists.txt}'s \texttt{find\_package} calls --- the closest thing
+to a ``pipreqs for C++'').
+
+\textbf{Step B — on the offline lab machine}: copy \texttt{ExportLab} to
+e.g.\ \texttt{C:\textbackslash qBounce}. \texttt{WindowsLauncher.py} works
+fully offline (venv + wheels, installs cmake/ninja into the venv with no
+admin rights, extracts the bundled OpenCV and passes
+\texttt{-DOpenCV\_DIR} to CMake, compiles the detector) and has three
+deliberately separate usages, so that the slow ``provision the machine''
+work is not repeated every single day:
+\begin{itemize}
+  \item \texttt{python WindowsLauncher.py --check} --- verifies the setup
+        \textbf{only} ($\sim$10\,s): no build, no GUI, nothing changed on
+        disk. Run it once on arrival, or whenever something looks wrong.
+  \item \texttt{python WindowsLauncher.py} --- the \textbf{full run}: venv +
+        packages + OpenCV + CMake build, then launches the GUI.
+  \item \texttt{python WindowsLauncher.py --no-launch} --- everything above
+        \emph{except} starting the GUI at the end (used by
+        \texttt{LabValidation.py}, below, to provision unattended).
+\end{itemize}
+Run the full \texttt{WindowsLauncher.py} \textbf{once}. After that
+provisioning has succeeded, the \textbf{daily} start no longer goes through
+the launcher at all:
+\begin{itemize}
+  \item \gui{CheckSetup.bat} --- double-click to re-run \texttt{--check}
+        (verification only, safe to run any time something looks wrong).
+  \item \gui{RunLab.bat} --- double-click for the \textbf{daily} start: runs
+        \texttt{Code\textbackslash venv\textbackslash Scripts\textbackslash
+        python.exe PipelineController.py} directly from the
+        already-provisioned venv, and refuses with a clear message if that
+        venv does not exist yet (i.e.\ if \texttt{WindowsLauncher.py} was
+        never run to completion).
+\end{itemize}
+
+\textbf{Validating the kit}: \texttt{python LabValidation.py} exercises the
+whole chain unattended --- runs \texttt{WindowsLauncher.py --check}, then a
+full \texttt{--no-launch} provisioning, proves the resulting
+\texttt{detector(.exe)} actually \textbf{starts} (i.e.\ that the OpenCV DLLs
+resolve), and finally replays the exact commands the GUI's \gui{Build}
+button would issue. Every subprocess has a timeout, so a run can never hang
+overnight waiting for input. Walk away and read
+\texttt{lab\_validation\_report.txt}, written next to the script, for a
+PASS/FAIL line per check; exit code 0 means every check the machine could
+run, passed.
+
+Two things the kit cannot bundle: the \textbf{C++ compiler} and the
+\textbf{IDS peak SDK}.
+\begin{itemize}
+  \item \textbf{Compiler}: must be \textbf{MSVC} (Visual Studio Build
+        Tools --- create an offline layout with
+        \texttt{vs\_buildtools.exe --layout} on an online PC if missing; the
+        launcher detects and explains this). \textbf{MinGW is not a
+        substitute}: the bundled OpenCV binaries are a \texttt{vc16} build,
+        and MinGW cannot link against it. A machine with MinGW on
+        \texttt{PATH} would otherwise look like it ``has a compiler'' and
+        only fail later, at the link step, which is why the launcher checks
+        specifically for MSVC rather than accepting any \texttt{g++}.
+  \item \textbf{IDS peak SDK}: still install it from its own installer for
+        real-camera capture (drivers + GenTL producer). Its Python
+        \emph{bindings}, however, are \textbf{not included in the standard
+        installer} (verified on IDS peak 26.06, on a real machine) --- the
+        kit no longer expects to find them under \texttt{Program Files}.
+        Instead \texttt{PrepareSetupLab.py} downloads \texttt{ids\_peak} and
+        \texttt{ids\_peak\_ipl} straight from PyPI into
+        \texttt{Code\textbackslash wheels}, so the offline machine installs
+        them like any other Python dependency. Only the Python layer travels
+        with the kit --- the native SDK (drivers/GenTL) must still be
+        installed on the lab machine itself.
+\end{itemize}
+
+\section{Standard workflow (Pipeline tab)}
+Run the steps top to bottom. Each step's output feeds the next.
+\begin{enumerate}
+  \item \gui{Clean} --- deletes previous outputs (background model,
+        detections CSVs, result plots). \emph{Keeps} the hand-labelled
+        annotation sample and the trained ML model.
+  \item \gui{Build} --- compiles the C++ detector (\texttt{cmake} + \texttt{make}).
+  \item \gui{Background Model} --- runs the detector over the \emph{dark}
+        folder. Produces \texttt{background\_model.yml} (binary format:
+        per-pixel mean, variance accumulator, sample count, dead-pixel mask).
+        \textbf{Redo this whenever exposure, gain, temperature or the camera
+        changes} --- the model is specific to the acquisition conditions.
+  \item \gui{Cluster Detection} --- runs the detector over the \emph{signal}
+        folder (resuming from the background model) $\rightarrow$
+        \texttt{detections.csv}: one row per cluster with 20 features
+        (position, size, charge, shape, SNR\ldots).
+  \item \gui{Labeling} --- opens the annotation GUI on a sample of clusters.
+        You assign the true class of each cluster (hotkeys shown on the
+        buttons; \texttt{[U]}/\texttt{Ctrl-Z} undoes a mistake). Because
+        $\alpha$ and $^{7}$Li tracks cannot be told apart visually, both are
+        labelled \texttt{lithium} (heavy track).
+  \item \gui{Classify / Train} --- trains a Random-Forest on your labelled
+        sample (quality = cross-validated F1, shown in the GUI) and exports
+        it as \texttt{model\_bundle.joblib} + \texttt{model\_bundle.onnx}.
+        \gui{Predict} then applies the model to the \emph{whole}
+        \texttt{detections.csv} $\rightarrow$
+        \texttt{detections\_classified.csv} + summary plots. This is the
+        offline neutron count of the run.
+  \item \gui{Backtest} --- re-runs the model on a \emph{golden dataset} (a
+        CSV with a human \texttt{true\_label} column, chosen in
+        \gui{Parameters} $\rightarrow$ \gui{Backtesting}) and reports
+        precision/recall per class. Use an independently labelled sample,
+        not the training sample, for an honest number.
+  \item \gui{Live} tab --- real-time acquisition and neutron counting
+        (Section~\ref{sec:live}).
+\end{enumerate}
+
+\section{Parameters reference (Parameters tab)}
+
+\subsection{Acquisition presets (IDS camera)}
+\begin{longtable}{p{4.2cm}p{10.5cm}}
+\toprule
+\textbf{Parameter} & \textbf{Meaning and impact} \\
+\midrule
+\param{Acquisition mode} &
+\textbf{Energy resolution} (default): reduced exposure/gain so heavy tracks
+stay below the 255 saturation level $\rightarrow$ the deposited-energy
+spectrum is usable. \textbf{High sensitivity}: full exposure/gain (historical
+behaviour); use when faint events (gammas) matter more than energy
+resolution. \\
+\param{Exposure us (energy)} &
+Exposure time of the energy preset. Tune until \texttt{study\_energy}
+reports \emph{Saturated} $\approx 0\%$. Shorter exposure = darker tracks,
+fewer per frame; note that counting efficiency is the \emph{duty cycle}
+$= \mathrm{exposure} \times \mathrm{fps}$ --- if you shorten the exposure,
+raise the fps accordingly or you will miss neutrons arriving between
+frames. \\
+\param{Gain dB (energy)} & Analog gain of the energy preset. Start at 0. \\
+\param{Target saturated px/frame} &
+The only knob of \gui{Auto-tune exposure}: acceptable mean number of
+saturated pixels ($\geq 254$) per frame. It is an \emph{absolute pixel
+count}, not a percentage: with $\sim$40 tracks $\times$ $\sim$10 px each, a
+target of 50 still allows $\sim$10\% of track area to clip; use 10--20 for
+clean spectroscopy. \\
+\param{Auto-tune exposure (beam ON)} &
+Halves the exposure from 500\,ms until the target is met, then fills the
+energy-mode exposure field. Run it with the beam ON --- it tunes on real
+track brightness. If it hits the 100\,\textmu s floor, lower the gain and
+re-run. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Detector parameters (C++)}
+\begin{longtable}{p{4.2cm}p{10.5cm}}
+\toprule
+\textbf{Parameter} & \textbf{Meaning and impact} \\
+\midrule
+\param{n\_sigma} (default 5) &
+Detection threshold: a pixel is an event if
+$\mathrm{ADU} > \mathrm{mean} + n_\sigma \sigma$. Lower = more sensitive
+and more noise clusters; higher = misses faint tracks.
+\texttt{src/study\_nsigma.py} plots cluster statistics vs.\ $n_\sigma$ to
+choose it objectively. \\
+\param{warmup\_frames} &
+Number of dark frames used to build the dead-pixel map (auto = the whole
+dark folder). \\
+\param{Min cluster size (px)} (default 4) &
+Clusters smaller than this are \emph{dropped at the source} (no CSV row, no
+classification). Heavy tracks are $\geq 5$ px; gammas/betas are 1--3 px.
+Set to 0 to record everything again (e.g.\ to label gammas). Dropping junk
+reduced $\sim$11\,000 clusters/frame to $\sim$60 on real data with no loss
+of heavy tracks. \\
+\param{Min cluster charge (ADU)} (default 300) &
+Same idea on deposited charge. Heavy tracks carry $\gtrsim 700$ ADU;
+noise/artifacts $\lesssim 70$. \\
+\param{Cluster gap tolerance (px)} (default 0) &
+Morphological closing radius that bridges small gaps in split tracks
+(useful for muons). 0 = off. \\
+\param{Cluster grow radius (px)} (default 1) &
+After clustering, adds neighbouring pixels above \param{Grow min SNR} to the
+footprint: recovers the sub-threshold halo charge around a track (better
+energy proxy). \textbf{Changing it changes the charge scale} --- redo the
+energy calibration afterwards. \\
+\param{Grow min SNR} (default 1.0) & Minimum per-pixel SNR for grown pixels. \\
+\bottomrule
+\end{longtable}
+
+Two protections are automatic (no knob): pixels saturated/black during most
+of the warmup are masked, and any pixel that is an \emph{event for 5
+consecutive frames} is declared hot and masked permanently (real particles
+never hit the same pixel every frame) --- this catches radiation damage that
+appears \emph{during} a run.
+
+\subsection{Matched operating point (important)}
+The background model, the cluster filters and the trained classifier form a
+\textbf{matched set}, tied to one gain. If you lower the gain to de-saturate
+tracks for the energy spectrum, three things move at once: the noise $\sigma$
+(so \textbf{rebuild the background model} at the new gain), the absolute ADU
+scale (so use \param{Min peak SNR}, which is gain-invariant, not
+\param{Min cluster charge}), and the classifier's input distribution --- a
+model trained on 100\%-saturated tracks has never seen a de-saturated one and
+may mislabel it. Three safeguards make this visible: (i) the model records
+the saturation it was trained at, and the live view pops a one-time
+\emph{operating-point mismatch} warning if the live saturation diverges by
+$>$25 points; (ii) \gui{Check separability} (Results tab) tests whether signal
+and noise can still be told apart in gain-robust features and shows a red
+dialog if they have MERGED --- at which point the neutron count is
+meaningless; (iii) the pre-filters are a throughput guardrail only (the
+classifier does the physics), set loose enough not to touch real tracks.
+The clean way to run de-saturated: pick a gain (\gui{Auto-tune gain}), rebuild
+the background model, take a labelling sample \emph{at that gain}, retrain,
+and keep the gain fixed --- so the model always matches the saturation it was
+trained on.
+
+\subsection{Live parameters (Live tab)}\label{sec:live}
+The \gui{Live Source} box only shows the fields relevant to the selected
+source: \gui{Simulated folder}/\gui{Simulated FPS} appear for the replay
+source and disappear for \gui{IDS camera} (whose settings live in
+\gui{Parameters}). Everything below the source box --- \param{Duration},
+batching, the model bundle, \gui{Start}/\gui{Stop} --- applies identically
+to \emph{either} source: there is one acquisition run, one Start control
+(the workflow's ②), regardless of where frames come from.
+
+\emph{Command-line note}: the GUI always passes the source explicitly, but
+if \texttt{LiveDetectionEngine.py} is ever invoked directly (e.g.\ for
+debugging), \param{--camera \{simulated,ids\}} is \textbf{mandatory} --- it
+has no default. This is deliberate: a stray invocation can never silently
+fall back to simulated frames when a real measurement was intended.
+\begin{longtable}{p{4.2cm}p{10.5cm}}
+\toprule
+\textbf{Parameter} & \textbf{Meaning and impact} \\
+\midrule
+\param{Duration (s)} & Total length of the live session (both sources); the
+engine auto-stops after this many seconds. \\
+\param{Batch seconds} / \param{Batch max frames} &
+A \emph{batch} is a display/classification grouping of frames (whichever
+limit is reached first closes the batch). It does not affect the physics ---
+frames are streamed to the detector one by one regardless. With
+\param{Batch max frames} = 1 you get one telemetry line per frame. \\
+\param{Rolling window (s)} &
+Time window of the rolling neutron rate. Poisson statistics: the relative
+error shown ($\pm$\%) is $1/\sqrt{N}$ with $N$ = neutrons in the window;
+$N \geq 100$ for $\sim$10\% precision. \\
+\param{Model bundle} &
+The trained classifier; the live engine actually loads the
+\texttt{.onnx} + \texttt{.meta.json} exported next to it. \\
+\param{Save during live} &
+What is written to disk while measuring, each on its own writer thread so
+detection is never throttled. \textbf{raw frames}: bit-identical
+\texttt{.bmp} archive of every camera frame (IDS-Cockpit replacement,
+$\sim$20\,MB/frame). \textbf{data\_analysed}: compact products only
+($\sim$20\,KB/frame masked images + noise model + arrival map). Default:
+both. \\
+\param{Raw recording folder} & Destination of the raw \texttt{.bmp} archive. \\
+\bottomrule
+\end{longtable}
+
+\paragraph{Storage budget (4\,TB server, 20.1\,MB/frame, 2\,fps, 24\,h/day).}
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+mode & disk per day & 4\,TB lasts \\
+\midrule
+raw frames            & $\sim$3.5\,TB & $\sim$1.2 days \\
+data\_analysed only   & $\sim$4\,GB   & $\sim$1000 days \\
+\bottomrule
+\end{tabular}
+\end{center}
+\emph{Caveat}: data\_analysed keeps only the pixels of clusters that passed
+the quality filters — it is an analysis product, not a raw archive. A
+lower detection threshold cannot be re-applied to it afterwards; keep raw
+frames (or lower the filters) whenever that flexibility matters.
+
+\paragraph{Temporal coverage.} Next to the fps choice, a coverage label
+shows $\mathrm{exposure} \times \mathrm{fps}$ — the fraction of wall-clock
+time the sensor integrates. Neutrons arriving outside it are never counted;
+divide any measured rate by the coverage. \gui{Query camera timing} reads
+the \emph{actual} exposure and resulting frame rate from the IDS camera
+(the sensor may clamp exposure below $1/\mathrm{fps}$ for readout).
+
+\paragraph{Guided lab session (workflow buttons).}
+\textbf{①~Background model (beam OFF)}: captures darks, builds the noise
+model and keeps a dated ``before'' copy. \textbf{②~Start measuring (beam
+ON)}: live neutron counting. \textbf{③~Camera health check (beam OFF)}:
+fresh darks $\rightarrow$ ``after'' model $\rightarrow$ automatic radiation
+damage report. \textbf{④~Background sanity}: classifies the beam-OFF
+clusters $\rightarrow$ the ML false-positive floor per frame, to subtract
+from any measured rate. The \emph{ambient} room rate (neighbouring
+experiments) is measured by running ② with the beam OFF; ambient $=$ that
+rate minus the ④ floor. \textbf{⑤~End-of-experiment report}: one click after
+a run shows, in \gui{Results}, the four maps of the experiment that just
+finished --- \emph{noise mean}, \emph{noise $\sigma$} (the sensor's
+per-pixel background), \emph{arrival of all detected particles}, and
+\emph{arrival of neutrons only} (positions of clusters classified
+lithium/alpha) --- plus an automatic separability verdict (a red dialog
+appears only if signal and noise have MERGED). Each ② run records into its
+own timestamped folder (\texttt{data\_analysed/live\_<date>\_<time>}), so ⑤
+always refers to exactly the experiment just finished, even with several
+runs per day. ⑤ deliberately does \emph{not} produce the energy spectrum: a
+normal 100--500-frame experiment has far too few heavy tracks for meaningful
+peaks --- see the next paragraph.
+
+\paragraph{Energy spectrum (office, large datasets).} The spectrum button
+lives in \gui{Parameters} $\rightarrow$ \gui{Energy analysis}, directly above
+a path field pointing at a LARGE classified CSV (e.g.\ the rare
+15\,000-frame runs, or several sessions concatenated). Run it back at the
+office, not in the live lab loop; the result appears in \gui{Results}.
+
+\paragraph{Live telemetry.} The statistics line shows cumulative neutrons
+($= \alpha + \mathrm{Li}$), per-channel counts and rates, neutrons/s,
+neutrons/frame and dead-pixel statistics. The \textbf{throughput line} shows
+\emph{Camera fps} (frames actually delivered), \emph{Analysed fps} (frames
+actually processed), and \emph{Dropped}: \textcolor{green!50!black}{green} =
+pipeline keeps up; \textcolor{orange}{orange} = queue filling, drops
+imminent; \textcolor{red}{red} = frames are being lost and \emph{all
+displayed rates under-count reality by that fraction} --- lower the camera
+fps or relax the analysis. At the end of a live run the detector writes
+\texttt{live\_signal\_arrival.tiff} (per-pixel capture counts; float32,
+$\sim$80\,MB) and a PNG preview shown in \gui{Results} --- it reveals
+\emph{where} captures land on the sensor (e.g.\ a partially covered region).
+
+\subsection{Energy spectrum (Results tab)}
+\gui{Energy Spectrum} runs \texttt{src/study\_energy.py} on
+\texttt{detections\_classified.csv}: a histogram of \param{total\_charge}
+for heavy tracks. Expected physics: two strong lines
+($^{7}\mathrm{Li}$ 0.84\,MeV, $\alpha$ 1.47\,MeV, ratio 1.75) plus two weak
+satellites (4\% branch: 1.01 and 1.78\,MeV). \textbf{Saturated pixels
+destroy energy information at capture time} --- nothing can recover it in
+post-processing; the tool prints the saturated fraction, and only spectra
+with $\approx 0\%$ saturation (energy acquisition mode) are quantitative.
+With \texttt{--calibrate} the two fitted peaks are anchored to the known
+MeV lines, giving an absolute energy axis and the predicted satellite
+positions.
+
+\subsection{Camera damage tester (radiation health)}
+Give two background models --- one built \emph{before} and one \emph{after}
+irradiation (browse buttons accept the binary \texttt{.yml}/\texttt{.bgm}
+files; the workflow's ①/③ buttons fill these in for you) --- and \gui{Run
+Degradation Analysis} reports the dark-current shift, hot-pixel counts on
+two independent signals, and a lifetime extrapolation.
+
+Two hot-pixel signals are reported, deliberately: a raw \textbf{brightness
+threshold} on the mean dark current (fast, but sensitive to how many dark
+frames each model was built from --- the ``after'' model is always built
+fresh, with no memory of the ``before'' one, so a small ``after'' sample
+gives a noisier mean and can flip a borderline pixel across the threshold
+either way by chance), and the \textbf{dead-pixel mask} each
+\texttt{background\_model} run already builds internally from $\geq$95\%
+saturated/zero behaviour over its \emph{entire} warmup, which cannot be
+tripped by a single noisy frame. Radiation damage is one-directional: a
+truly dead pixel cannot become alive again. If the dead-pixel count
+\emph{drops} between ``before'' and ``after'', that is not the sensor
+healing --- it is the measurement noise floor of that particular
+before/after pair, and the tool says so explicitly. It also warns whenever
+the two models were built from very different frame counts (ratio
+$<0.5$ or $>2$), since that is exactly the condition that makes the
+brightness-threshold signal unreliable. Build ``after'' from as many fresh
+dark frames as time allows, ideally comparable to ``before''.
+
+\section{Data products}
+\begin{longtable}{p{5.2cm}p{9.5cm}}
+\toprule
+\textbf{File} & \textbf{Content} \\
+\midrule
+\texttt{background\_model.yml} & Binary noise model (mean, variance, counts, dead mask). \\
+\texttt{detections.csv} & One row per detected cluster, 20 features. \\
+\texttt{detections\_classified.csv} & Same + predicted label and confidence. \\
+\texttt{data\_analysed/\ldots} & Compact archive: 5 raw sample frames,
+sparse masked PNGs ($\sim$1000$\times$ smaller than raw --- only pixels of
+valid clusters are kept), lossless float TIFFs of mean/$\sigma$/arrival.
+Written by the offline steps and, when enabled, during live
+(\texttt{data\_analysed/live\_<date>}) on a dedicated writer thread. \\
+\texttt{live\_recording/\ldots} & Raw \texttt{.bmp} archive of every live
+frame, when raw recording is enabled. \\
+\texttt{live\_signal\_arrival.tiff/.png} & Where captures landed during the last live run. \\
+\texttt{energy\_histogram.png} & Deposited-charge spectrum of heavy tracks. \\
+\bottomrule
+\end{longtable}
+
+\section{Maintenance --- modifying and redeploying the code}
+\begin{itemize}
+  \item \textbf{Python change} (\texttt{PipelineController.py} or
+        \texttt{Code/src/*.py}): nothing to build --- restart the GUI.
+  \item \textbf{C++ change} (\texttt{*.cpp}/\texttt{*.h}): recompile before
+        the change takes effect:
+        \texttt{cmake --build build --config Release} inside \texttt{Code}
+        (or simply re-run \texttt{WindowsLauncher.py}, which rebuilds then
+        launches). The GUI runs whatever \texttt{build/detector(.exe)}
+        currently is --- an old binary silently ignores new features.
+  \item \textbf{New Python dependency}: re-run \texttt{PrepareSetupLab.py}
+        on the online machine (it re-scans imports with pipreqs, sanitises
+        the list, re-downloads wheels) and copy the new
+        \texttt{Code/wheels} over.
+  \item \textbf{Redeploying to the lab}: re-run \texttt{PrepareSetupLab.py}
+        $\rightarrow$ fresh \texttt{ExportLab/} $\rightarrow$ USB. For a
+        small patch, copying just the changed \texttt{.py} files is enough
+        (plus a rebuild if C++ changed). Never copy \texttt{venv/} or
+        \texttt{build/} between machines.
+  \item \textbf{Changed gain / camera settings}: rebuild the background
+        model (①) at the new operating point, and if the saturation regime
+        changed, re-label and retrain the classifier (see \emph{Matched
+        operating point}).
+\end{itemize}
+
+\section{Troubleshooting}
+\begin{itemize}
+  \item \emph{Neutron counts are zero}: retrain/re-export the classifier
+        (\gui{Classify}) so \texttt{model\_bundle.onnx} exists; check the
+        Console tab for engine errors.
+  \item \emph{Camera fps lower than requested}: the number shown is what the
+        camera \emph{actually delivers} (exposure time caps it at
+        $1/\mathrm{exposure}$; disk decoding caps the simulated camera).
+  \item \emph{Dropped frames (red)}: the analysis cannot keep up --- reduce
+        camera fps, or raise \param{Min cluster size/charge}.
+  \item \emph{``Corrupted model file''}: delete
+        \texttt{background\_model.yml} and rerun \gui{Background Model}.
+  \item \emph{Arrival heatmap looks binary (0/255)}: normal at low
+        statistics --- each pixel has seen at most one capture; structure
+        appears over long runs.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,182 @@
+% =====================================================================
+%  qBOUNCE — architecture graphs, shared between the thesis and
+%  CodeArchitecture.tex so the two can never drift apart.
+%
+%  Requires in the including document's preamble:
+%      \usepackage{tikz}
+%      \usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
+%
+%  Every arrow is labelled with what one file actually does to the other,
+%  naming the function where a single call carries the relationship.
+%  Read from the source, not from memory.
+% =====================================================================
+
+\tikzset{
+  archroot/.style   = {rectangle, rounded corners=2pt, draw=black!70, fill=black!5,
+                       align=center, font=\scriptsize\bfseries, inner sep=4pt,
+                       minimum height=8mm},
+  archart/.style    = {rectangle, rounded corners=2pt, draw=black!45, fill=yellow!12,
+                       align=center, font=\scriptsize\itshape, inner sep=4pt,
+                       minimum height=7mm},
+  archcpp/.style    = {rectangle, rounded corners=2pt, draw=orange!75!black,
+                       fill=orange!10, align=center, font=\scriptsize, inner sep=4pt,
+                       minimum height=8mm},
+  archcam/.style    = {rectangle, rounded corners=2pt, draw=green!45!black,
+                       fill=green!8, align=center, font=\scriptsize, inner sep=4pt,
+                       minimum height=8mm},
+  archml/.style     = {rectangle, rounded corners=2pt, draw=violet!65!black,
+                       fill=violet!8, align=center, font=\scriptsize, inner sep=4pt,
+                       minimum height=8mm},
+  archdata/.style   = {rectangle, rounded corners=2pt, draw=blue!60!black,
+                       fill=blue!8, align=center, font=\scriptsize, inner sep=4pt,
+                       minimum height=8mm},
+  archflow/.style   = {-{Stealth[length=2mm]}, draw=black!65, thick},
+  archlbl/.style    = {font=\tiny, align=center, fill=white, inner sep=1.5pt},
+}
+
+% ---------------------------------------------------------------------
+% FIGURE A — how the four entry-point scripts reach the four poles
+% ---------------------------------------------------------------------
+\newcommand{\qbArchOverview}{%
+\begin{tikzpicture}
+  \node[archroot, text width=33mm] (prep) at (0,7.2)    {PrepareSetupLab.py\\[-1pt]\tiny dev machine, online};
+  \node[archart,  text width=33mm] (kit)  at (7.4,7.2)  {ExportLab/\\[-1pt]\tiny offline kit on a USB stick};
+  \node[archroot, text width=33mm] (winl) at (14.8,7.2) {WindowsLauncher.py\\[-1pt]\tiny lab PC, offline};
+  \node[archroot, text width=33mm] (lval) at (22.2,7.2) {LabValidation.py\\[-1pt]\tiny unattended validation};
+
+  \node[archroot, text width=60mm] (pc) at (10.4,3.9)
+        {PipelineController.py\\[-1pt]\tiny Tkinter GUI --- the only orchestrator};
+
+  \node[archcpp,  text width=27mm] (p1) at (0,1.0)    {\textbf{Pole 1}\\C++ detector};
+  \node[archcam,  text width=27mm] (p2) at (7.4,1.0)  {\textbf{Pole 2}\\Live acquisition};
+  \node[archml,   text width=27mm] (p3) at (14.8,1.0) {\textbf{Pole 3}\\Labelling \& learning};
+  \node[archdata, text width=27mm] (p4) at (22.2,1.0) {\textbf{Pole 4}\\Data \& energy\\analysis};
+
+  \draw[archflow] (prep) -- node[archlbl,above]{copies sources,\\downloads wheels\\+ OpenCV} (kit);
+  \draw[archflow] (kit)  -- node[archlbl,above]{carried to the lab,\\extracted to\\C:\textbackslash qBounce} (winl);
+  \draw[archflow] (winl) -- node[archlbl,above right,pos=0.25,xshift=-1mm]{creates the venv, compiles\\the detector, launches it} (pc);
+  \draw[archflow] (lval) to[out=250,in=20] node[archlbl,right,pos=0.55]{replays the GUI's Build step,\\then drives the camera} (pc);
+
+  \draw[archflow] (pc) -- node[archlbl,above left,pos=0.6]{spawns\\detector(.exe)} (p1);
+  \draw[archflow] (pc) -- node[archlbl,left,pos=0.62]{spawns ids\_capture.py /\\LiveDetectionEngine.py} (p2);
+  \draw[archflow] (pc) -- node[archlbl,right,pos=0.62]{spawns labeling\_ui.py /\\ml\_classifier.py} (p3);
+  \draw[archflow] (pc) -- node[archlbl,above right,pos=0.6]{spawns study\_energy.py /\\study\_nsigma.py} (p4);
+
+  % Data hand-offs, routed BELOW the poles so they never cross a title.
+  \draw[archflow, dashed, draw=black!45] (p2.south) |- (7.0,-0.9) -| node[archlbl,below,pos=0.25]{frames written to disk, or streamed frame by frame} (p1.south);
+  \draw[archflow, dashed, draw=black!45] (p1.south) |- (0.8,-1.9) -| node[archlbl,below,pos=0.25]{detections.csv --- one row per cluster, 20 physics columns} (p3.south);
+  \draw[archflow, dashed, draw=black!45] (p3.south) |- (13.2,-0.9) -| node[archlbl,below,pos=0.25]{predicted\_label} (p4.south);
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+% FIGURE B — Pole 1, the compiled C++ detector
+% ---------------------------------------------------------------------
+\newcommand{\qbArchDetector}{%
+\begin{tikzpicture}
+  \node[archart] (exe)  at (0,4.6) {detector(.exe)\\[-1pt]\tiny compiled binary};
+  \node[archcpp] (main) at (0,2.9) {main.cpp\\[-1pt]\tiny argv, threads, frame loop};
+  \node[archcpp] (bg)   at (-5.0,0.7) {BackgroundModel\\.cpp / .h};
+  \node[archcpp] (cd)   at (0,0.7)    {ClusterDetector\\.cpp / .h};
+  \node[archcpp] (de)   at (5.0,0.7)  {DataExporter\\.cpp / .h};
+  \node[archart] (csv)  at (0,-1.7)   {detections.csv};
+  \node[archart] (maps) at (5.0,-1.7) {background\_mean/sigma.tiff\\signal\_arrival.tiff + heatmaps};
+  \node[archart] (bgm)  at (-5.0,-1.7){background\_model.yml\\[-1pt]\tiny binary BGMD, $\approx$260\,MB};
+
+  \draw[archflow] (exe)  -- node[archlbl,right]{is} (main);
+  \draw[archflow] (main) -- node[archlbl,above,sloped]{\texttt{bg.update(raw)}\\once per frame} (bg);
+  \draw[archflow] (main) -- node[archlbl,right,pos=0.55]{\texttt{detect(event\_mask,}\\\texttt{raw, mean, sigma)}} (cd);
+  \draw[archflow] (main) -- node[archlbl,above,sloped,pos=0.62]{hands the model +\\arrival counts} (de);
+  \draw[archflow] (bg) -- node[archlbl,below,pos=0.5]{event mask,\\\texttt{getSigmaImage()}} (cd);
+  \draw[archflow] (cd) -- node[archlbl,right]{\texttt{toCsvLine()}} (csv);
+  \draw[archflow] (de) -- node[archlbl,right]{\texttt{saveBackgroundImages()}} (maps);
+  \draw[archflow] (bg) -- node[archlbl,left]{\texttt{save()} / \texttt{load()}\\(\texttt{-{}-resume})} (bgm);
+
+  \node[archlbl, draw=black!30, fill=black!3, text width=52mm, align=left]
+        at (0,-3.7) {\textbf{The one rule worth knowing:} \texttt{update()} runs a
+        Welford pass on \emph{non-event} pixels only --- detected tracks and dead
+        pixels are masked out before the statistics are touched, so real particles
+        never enter the background they are measured against.};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+% FIGURE C — Pole 2, live acquisition from the IDS camera
+% ---------------------------------------------------------------------
+\newcommand{\qbArchLive}{%
+\begin{tikzpicture}
+  \node[archart] (cam)  at (0,4.6)   {IDS U3-380xACP-M\\[-1pt]\tiny via ids\_peak / ids\_peak\_ipl};
+  \node[archcam] (idsc) at (0,2.9)   {ids\_capture.py\\[-1pt]\tiny the single SDK wrapper};
+  \node[archcam] (cif)  at (7.2,2.9) {CameraInterface.py\\[-1pt]\tiny IdsCamera / SimulatedCamera};
+  \node[archcam] (shim) at (14.6,2.9) {camera\_interface.py\\[-1pt]\tiny lower-case import shim};
+  \node[archcam] (live) at (7.2,0.6) {LiveDetectionEngine.py\\[-1pt]\tiny two threads + a queue};
+  \node[archart] (det)  at (0.0,0.6) {detector(.exe)\\[-1pt]\tiny persistent server mode};
+  \node[archart] (onnx) at (14.6,0.6) {model\_bundle.onnx\\[-1pt]\tiny + .meta.json};
+  \node[archart] (out)  at (7.2,-1.6){LIVE\_BATCH lines on stdout\\[-1pt]\tiny parsed by the GUI's Live tab};
+
+  \draw[archflow] (cam)  -- node[archlbl,right]{\texttt{WaitForFinishedBuffer()}} (idsc);
+  \draw[archflow] (idsc) -- node[archlbl,above]{reuses \texttt{\_open\_device\_or\_explain},\\\texttt{\_set\_value}, \texttt{\_mono8\_numpy}} (cif);
+  \draw[archflow] (shim) -- node[archlbl,above]{\texttt{from CameraInterface import *}} (cif);
+  \draw[archflow] (cif)  -- node[archlbl,right]{\texttt{create\_camera("ids")}\\then \texttt{get\_frame()}} (live);
+  \draw[archflow] (live) -- node[archlbl,above]{streams frames,\\reads clusters back} (det);
+  \draw[archflow] (onnx) -- node[archlbl,above]{\texttt{InferenceSession.run()}\\per cluster} (live);
+  \draw[archflow] (live) -- node[archlbl,right]{one JSON line per batch} (out);
+
+  \node[archlbl, draw=black!30, fill=black!3, text width=60mm, align=left]
+        at (7.2,-3.3) {\texttt{ids\_capture.py} is also a stand-alone CLI: \texttt{-{}-list-devices},
+        \texttt{-{}-query} (real exposure and frame rate) and \texttt{-{}-auto-tune}
+        (searches the gain that keeps tracks below saturation) are the three the GUI
+        calls directly.};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+% FIGURE D — Pole 3, labelling and machine learning
+% ---------------------------------------------------------------------
+\newcommand{\qbArchML}{%
+\begin{tikzpicture}
+  \node[archart] (csv)  at (0,3.6)   {detections.csv\\[-1pt]\tiny 20 physics columns per cluster};
+  \node[archml]  (lab)  at (0,1.7)   {labeling\_ui.py\\[-1pt]\tiny Tkinter, one hotkey per class};
+  \node[archart] (gold) at (0,-0.2)  {annotated CSV\\[-1pt]\tiny carries \texttt{true\_label}};
+  \node[archml]  (mlc)  at (7.4,1.7) {ml\_classifier.py\\[-1pt]\tiny \texttt{-{}-train} / \texttt{-{}-predict}};
+  \node[archart] (bund) at (14.8,1.7) {model\_bundle.joblib\\.onnx + .meta.json};
+  \node[archml]  (bt)   at (7.4,-0.6){backtest\_report.py\\[-1pt]\tiny accuracy, per-class F1,\\confusion matrix};
+
+  \draw[archflow] (csv) -- node[archlbl,right]{crops each cluster\\for a human to judge} (lab);
+  \draw[archflow] (lab) -- node[archlbl,right]{writes the class chosen} (gold);
+  \draw[archflow] (gold) -- node[archlbl,above]{\texttt{-{}-train} on\\\texttt{FEATURE\_COLS}} (mlc);
+  \draw[archflow] (mlc) -- node[archlbl,above]{fits, then exports\\to ONNX} (bund);
+  \draw[archflow] (gold) to[out=0,in=200] node[archlbl,below,pos=0.6]{scores the bundle against\\the golden set} (bt);
+  \draw[archflow] (bund) to[out=270,in=0] node[archlbl,right,pos=0.3]{loaded for\\\texttt{-{}-predict}} (bt);
+
+  \node[archlbl, draw=red!40, fill=red!5, text width=64mm, align=left]
+        at (7.4,-2.9) {\textbf{Known limitation.} The bundle shipped with the kit was
+        trained on classes \texttt{\{artifact, gamma, lithium\}}: it has no
+        \texttt{alpha} class, so the Live tab's alpha counter is structurally zero
+        and \texttt{neutrons = alpha + lithium} currently counts lithium alone.
+        Re-labelling with the \texttt{alpha} button is what closes this.};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+% FIGURE E — Pole 4, data selection and offline analysis
+% ---------------------------------------------------------------------
+\newcommand{\qbArchAnalysis}{%
+\begin{tikzpicture}
+  \node[archart] (smb)  at (0,3.6)  {SMB share at the beamline\\[-1pt]\tiny raw camera folders};
+  \node[archdata](dsel) at (0,1.8)  {data\_selector.py\\[-1pt]\tiny copies runs, writes a\\JSON manifest per session};
+  \node[archart] (data) at (0,0.0)  {Code/Data\_tot/\\[-1pt]\tiny dark/ and signal/};
+  \node[archdata](sn)   at (7.6,1.8){study\_nsigma.py\\[-1pt]\tiny re-runs the detector over a\\range of \texttt{-{}-nsigma}};
+  \node[archdata](se)   at (7.6,-0.2){study\_energy.py\\[-1pt]\tiny \texttt{total\_charge} spectrum,\\2-component GMM};
+  \node[archart] (figs) at (14.8,0.8){figures: cluster-size curves,\\deposited-charge histogram,\\separability verdict};
+
+  \draw[archflow] (smb)  -- node[archlbl,right]{selects the runs worth keeping} (dsel);
+  \draw[archflow] (dsel) -- node[archlbl,right]{verified copy + manifest} (data);
+  \draw[archflow] (data) to[out=0,in=180] node[archlbl,above,pos=0.55]{feeds the detector\\once per threshold} (sn);
+  \draw[archflow] (data) -- node[archlbl,below,pos=0.6]{detections.csv} (se);
+  \draw[archflow] (sn) -- node[archlbl,above,pos=0.5]{} (figs);
+  \draw[archflow] (se) -- node[archlbl,below,pos=0.5]{} (figs);
+
+  \node[archlbl, draw=black!30, fill=black!3, text width=64mm, align=left]
+        at (7.6,-2.5) {\texttt{study\_energy.py} prints the saturated fraction before any
+        peak structure, because \texttt{total\_charge} is proportional to deposited
+        energy only while no pixel clips at 255. On the July 2026 run that fraction
+        is 99.5\,\% above 5\,px, which is why the spectrum below cannot yet be read
+        as an energy axis.};
+\end{tikzpicture}}

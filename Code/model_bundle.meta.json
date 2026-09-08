@@ -1,0 +1,19 @@
+{
+  "classes": [
+    "artifact",
+    "gamma",
+    "lithium"
+  ],
+  "feature_cols": [
+    "size_px",
+    "aspect_ratio",
+    "elongation",
+    "compactness",
+    "total_charge",
+    "peak_value",
+    "peak_snr",
+    "sigma_x",
+    "sigma_y",
+    "axis_ratio"
+  ]
+}

@@ -1,0 +1,248 @@
+% ============================================================
+%  header.tex -- packages and layout, reused from
+%  docs/Expose_Template/header.tex so this thesis matches the
+%  department's Exposé/thesis look (fonts, colours, title-page
+%  macros, listings style). Adjust freely.
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[ngerman,english]{babel}
+\usepackage{siunitx}
+% --- siunitx set-up ---------------------------------------------------------
+% Every quantity in the thesis goes through \SI/\si/\num, so the number-unit
+% spacing, the upright unit shape and the line breaking are decided here once
+% instead of at each occurrence.  The four settings below reproduce the way
+% the quantities were already written by hand, so switching to siunitx changes
+% who does the typesetting, not what the page looks like.
+%   separate-uncertainty       95.75 +- 2.20, not 95.75(220)
+%   separate-uncertainty-units 95.75 +- 2.20 %, not (95.75 +- 2.20) %
+%   per-mode                   m/s, not m s^{-1}
+%   range-phrase               5--13 m/s, not "5 to 13 m/s"
+\sisetup{
+  separate-uncertainty        = true,
+  separate-uncertainty-units  = single,
+  per-mode                    = symbol,
+  range-units                 = single,
+  range-phrase                = {\text{--}},
+}
+% Units that are not SI but are what this detector measures in.  Declaring them
+% keeps them out of the text: an ADU or a px is then written the same way as a
+% millisecond, and siunitx sets it upright with the right space in front.
+\DeclareSIUnit{\ADU}{ADU}      % analogue-to-digital unit, one count of the ADC
+\DeclareSIUnit{\px}{px}        % pixel, as a length/area on the sensor
+\DeclareSIUnit{\pixel}{pixel}  % spelled out; \mega\pixel gives "Mpixel"
+\DeclareSIUnit{\fps}{fps}      % frames per second, as the camera reports it
+% siunitx deprecates its own \bar (the name collides with the math accent
+% \bar and with amsmath's \Bar), so the pressure unit is declared here under
+% a name that is free.  Written \milli\barpressure it still prefixes.
+\DeclareSIUnit{\barpressure}{bar}
+\usepackage[acronym]{glossaries}
+\usepackage{tabularx}
+\usepackage{booktabs}
+% \begin{tabular}\toprule ... \midrule ... \bottomrule
+\usepackage[labelfont={sf,bf},textfont={sf}]{caption}
+\captionsetup{singlelinecheck=false}
+\usepackage{subcaption}
+\usepackage{subfloat}
+\usepackage{amsmath,bm}
+\usepackage{physics}          % \bra, \ket, \braket, \dv, \pdv
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{xcolor}
+% TU Wien colors
+\definecolor{TUblue}{RGB}{0,102,153}
+\definecolor{TUblue1}{RGB}{84,133,171}
+\definecolor{TUblue2}{RGB}{114,173,213}
+\definecolor{TUblue3}{RGB}{166,213,236}
+\definecolor{TUblue4}{RGB}{223,242,253}
+
+\definecolor{TUlightblue}{RGB}{143,190,229}
+\definecolor{TUlighterblue}{RGB}{222,231,236}
+
+\definecolor{TUgreen}{RGB}{0,126,113}
+\definecolor{TUgreen1}{RGB}{106,170,165}
+\definecolor{TUgreen2}{RGB}{162,198,194}
+\definecolor{TUgreen3}{RGB}{233,241,240}
+
+\definecolor{TUmagenta}{RGB}{186,70,130}
+\definecolor{TUmagenta1}{RGB}{205,129,168}
+\definecolor{TUmagenta2}{RGB}{223,175,202}
+\definecolor{TUmagenta3}{RGB}{245,229,239}
+
+\definecolor{TUorange}{RGB}{225,137,34}
+\definecolor{TUorange1}{RGB}{238,180,115}
+\definecolor{TUorange2}{RGB}{245,208,168}
+\definecolor{TUorange3}{RGB}{253,239,225}
+
+\definecolor{TUgray}{RGB}{100,99,99}
+\definecolor{TUgray1}{RGB}{157,156,156}
+\definecolor{TUgray2}{RGB}{208,208,208}
+\definecolor{TUgray3}{RGB}{237,237,237}
+
+\usepackage[export]{adjustbox}
+\usepackage{placeins}
+
+% Float placement. LaTeX's defaults are conservative enough that a figure with a
+% long caption is often sent to a page of its own, with no text on it at all --
+% which is where most of this thesis' white space came from. These are the
+% standard loosened values: a float may take nine tenths of a page from the top,
+% a page needs only seven percent of text to count as a text page, and a
+% float-only page has to be three quarters full before LaTeX will make one.
+\renewcommand{\topfraction}{0.90}
+\renewcommand{\bottomfraction}{0.80}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\usepackage{textcomp}
+\usepackage{chngcntr}
+% The collaboration styles its name with the word in italic and the B upright.
+% One definition, so the whole thesis changes with it.
+\newcommand{\qbounce}{\textit{q}B\textit{ounce}}
+
+\counterwithin{figure}{section}
+% Tables were left on a running counter, so they came out 2.1, 3.2, 4.3 --
+% the section changed and the number did not restart.
+\counterwithin{table}{section}
+\counterwithin{equation}{section}
+\renewcommand{\thetable}{\arabic{section}.\arabic{table}}
+\usepackage{nicefrac}
+\usepackage{braket}
+\usepackage{comment}
+\usepackage{array}
+\usepackage{todonotes} % \todo{...} and \todo[inline]{...} for visible
+                        % reminders -- see the "TODO (Loic)" boxes below
+\PassOptionsToPackage{hyphens}{url}
+\usepackage[linkbordercolor=TUmagenta,citebordercolor=TUgreen,
+urlbordercolor=TUblue]{hyperref}
+\usepackage[babel,german=guillemets]{csquotes}
+% textgreek removed: nothing in the thesis uses it, and it pulls in the LGR
+% encoding whose font descriptors (LGRcmr.fd) are absent from this TeX Live
+% install -- which aborted the run with 'This NFSS system isn't set up
+% properly'. Re-add it together with the cbfonts-fd package if Greek text
+% (not math) is ever needed.
+% \usepackage{textgreek}
+% float provides the [H] placement used by two figures; without it LaTeX
+% raises 'Unknown float option H' and drops the figure.
+\usepackage{float}
+% Architecture graphs live in ../architecture_graphs.tex and are \input by both
+% this thesis and CodeArchitecture.tex, so the two can never drift apart.
+\usepackage{pifont}   % \ding{172}.. circled numbers, matching the GUI's buttons
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
+\usepackage{enumerate}
+
+\usepackage[most]{tcolorbox}
+
+%%% For Bibliography
+\usepackage[style=numeric-comp,backend=biber,defernumbers=true,
+hyperref=true,sorting=none,giveninits=true,maxbibnames=99,
+doi=true,isbn=false,url=false]{biblatex}
+\AtEveryBibitem{\clearfield{month}} \AtEveryBibitem{\clearfield{day}}
+\AtEveryBibitem{\clearfield{number}}
+
+\bibliography{bibliography.bib}
+
+%%% Header
+\usepackage[automark]{scrlayer-scrpage}
+\ihead{Bachelorarbeit}
+\chead{}
+\ohead{\Name}
+
+%%% Margins, please play
+\topmargin 0.0cm
+\textheight 220mm                 % Height of text part of page
+\textwidth=16cm
+\oddsidemargin=0cm
+\evensidemargin=0cm
+
+% ---------------------------------------------------------------------------
+% My \newcommands
+
+\newcommand{\TUblue}{\color{TUblue}}
+\newcommand{\TUmagenta}{\color{TUmagenta}}
+
+\newcommand{\etal}{\textit{et al.}\xspace}
+\newcommand{\figref}[1]{Figure~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+
+% Physics shorthands kept from the original draft
+\newcommand{\UCN}{ultra-cold neutron}
+\newcommand{\UCNs}{ultra-cold neutrons}
+\newcommand{\GRS}{Gravity Resonance Spectroscopy}
+% \peV, \neV and \mum used to live here.  They are gone on purpose: they were a
+% second way of writing a unit next to \SI, and the micrometre ended up spelled
+% \mum in one place and \,\mu\mathrm{m} in another.  Write \SI{1.41}{\pico
+% \electronvolt} and \SI{5.87}{\micro\metre}.  Anything still using the old
+% macros now fails to compile, which is the point.
+
+\renewcommand{\labelenumii}{\arabic{enumi}.\arabic{enumii}}
+\renewcommand{\labelenumiii}{\arabic{enumi}.\arabic{enumii}.\arabic{enumiii}}
+\renewcommand{\labelenumiv}{\arabic{enumi}.\arabic{enumii}.\arabic{enumiii}.\arabic{enumiv}}
+
+%%% Graphicspath
+\graphicspath{{./}{titlepage/}}
+
+% ---------------------------------------------------------------------------
+% listings -- for the "Commented Code Excerpts" section
+\usepackage{textcomp,listings}
+\usepackage{lstautogobble}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{listgray}{rgb}{0.88,0.88,0.88}
+
+\lstdefinestyle{mystyle}{
+  xleftmargin=0.02\linewidth,
+  xrightmargin=0.02\linewidth,
+  framesep=1pt,
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\footnotesize,
+  columns=flexible,
+  breakatwhitespace=false,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  numbers=left,
+  numbersep=5pt,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  frame=single,
+  frameround=tttt,
+  tabsize=2,
+  autogobble=true,
+  % The C++ and Python sources use em dashes and box-drawing rules inside their
+  % comment banners. Under pdflatex with inputenc those bytes have no printable
+  % meaning, and a single one inside a quoted range stops the build. Mapping
+  % them to ASCII here means any range of the real sources can be quoted with
+  % \lstinputlisting without having to edit the sources to suit the thesis.
+  extendedchars=true,
+  literate={—}{{-{}-{}-}}1 {─}{{-}}1 {–}{{-{}-}}1
+}
+
+\lstset{style=mystyle}
+
+% Convenience languages for \lstinputlisting[language=...]
+\lstdefinelanguage{None}{}
+%-----------------------------------
+
+% ---------------------------------------------------------------------------
+% "Don't forget" box for the things Loic must fill in before submission.
+% Usage:  \begin{remembertodo}{Short label}  ... \end{remembertodo}
+\newtcolorbox{remembertodo}[1]{%
+  colback=TUorange3, colframe=TUorange, colbacktitle=TUorange,
+  coltitle=white, fonttitle=\bfseries\sffamily,
+  title={TODO (Loïc) --- #1}, breakable, boxrule=0.8pt,
+  left=6pt, right=6pt, top=4pt, bottom=4pt
+}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main.tex"
+%%% End:

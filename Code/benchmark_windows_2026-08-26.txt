@@ -1,0 +1,39 @@
+==============================================================================
+  DETECTOR BENCHMARK
+==============================================================================
+  when      : 2026-08-26T11:55:34
+  machine   : Windows | 11 | AMD64 | AMD64 Family 23 Model 104 Stepping 1, AuthenticAMD
+  detector  : C:\qBounce\ExportLab\Code\build\Release\detector.exe
+  frames    : 500 from C:\qBounce\perf_dark
+  flags     : n_sigma=5 warmup=500 dthreads=2 cthreads=4
+  repeats   : 10
+
+  run  1:   582.7 ms/img wall   serial  580.7   bg  456.0   snap 124.5   clusters 39071
+  run  2:   568.4 ms/img wall   serial  566.9   bg  447.0   snap 119.7   clusters 39071
+  run  3:   583.1 ms/img wall   serial  581.1   bg  460.1   snap 120.7   clusters 39071
+  run  4:   548.2 ms/img wall   serial  546.7   bg  433.8   snap 112.6   clusters 39071
+  run  5:   546.6 ms/img wall   serial  545.2   bg  431.3   snap 113.6   clusters 39071
+  run  6:   559.1 ms/img wall   serial  557.7   bg  440.9   snap 116.6   clusters 39071
+  run  7:   546.9 ms/img wall   serial  545.4   bg  432.2   snap 113.0   clusters 39071
+  run  8:   559.0 ms/img wall   serial  557.6   bg  441.0   snap 116.3   clusters 39071
+  run  9:   553.6 ms/img wall   serial  552.1   bg  434.7   snap 117.1   clusters 39071
+  run 10:   566.9 ms/img wall   serial  565.4   bg  446.3   snap 118.9   clusters 39071
+
+------------------------------------------------------------------------------
+  SUMMARY over 10 run(s)  --  value +/- sample standard deviation
+------------------------------------------------------------------------------
+    wall clock per frame          561.4 +/-  13.7 ms/img   ( 2.4%)
+    TOTAL serial                  559.9 +/-  13.5 ms/img   ( 2.4%)
+      bg.update (Welford)         442.3 +/-  10.0 ms/img   ( 2.3%)
+      snapshot mean+sigma         117.3 +/-   3.8 ms/img   ( 3.2%)
+        .. mean clone              61.1 +/-   1.9 ms/img   ( 3.1%)
+        .. sigma derive            56.2 +/-   2.1 ms/img   ( 3.6%)
+      waiting for loaders           0.2 +/-   0.0 ms/img   (21.0%)
+
+    clusters detected          39071   (identical across runs)
+
+    acquisition period            557.0 ms/img  (1.80 fps measured)
+    live-mode verdict          TOO SLOW  (559.9 +/- 13.5 vs 557 ms)
+    would drop                  0.5% of frames
+
+  report: C:\qBounce\benchmark_windows_run2.txt

@@ -1,0 +1,105 @@
+%%%%%%%%% CHANGE HERE IF NEEDED
+\newcommand{\TitleEN}{\qbounce{}: Autonomous Detection and Characterization of Particles within the CMOS Sensor}
+% The closing brace used to sit behind a %, so it was commented out: the
+% \newcommand never terminated, swallowed the rest of the file, and \Name
+% was therefore never defined -- which is why the title page vanished and
+% every page header raised 'Undefined control sequence'.
+% Titre allemand retire de la page de titre : redondant avec l'anglais.
+% La definition reste, pour que le remettre ne coute qu'une ligne.
+\newcommand{\TitleDE}{\qbounce{}: Autonome Detektion und Charakterisierung von Teilchen im CMOS-Sensor} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PLEASE CHOOSE YOUR CURRICULUM
+\newcommand{\Studium}{Technische Physik} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PLEASE CHOOSE YOUR TYPE OF WORK
+\newcommand{\WorkType}{Bachelorarbeit}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SUPERVISORS AND SUBMITTER
+\newcommand{\Name}{Loïc Posta}
+\newcommand{\MatNr}{12505712}
+% Begutachter = the assessor who grades the thesis;
+% Betreuer    = the supervisor of the day-to-day work;
+% Mitwirkung  = further contribution to the supervision.
+% Each name is followed by its affiliation on the next, indented line --
+% Marton holds two, which does not fit on one line at this width.
+\newcommand{\Begutachter}{Privatdoz.\ Dipl.-Ing.\ Dr.\ Johann Marton}
+\newcommand{\Betreuer}{Univ.Ass.\ Dipl.-Ing.\ Dr.techn.\ Joachim Bosina}
+\newcommand{\Mitwirkung}{Univ.Prof.\ Dipl.-Phys.\ Dr.rer.nat.\ Dr.h.c.\ Hartmut Abele}
+\newcommand{\UniA}{TU Wien / Atominstitut}
+\newcommand{\UniB}{TU Wien / Atominstitut}
+\newcommand{\UniC}{TU Wien / Atominstitut}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{titlepage}
+  \sffamily
+  \vspace*{-2cm}
+  % TU Wien (left) + ILL (right).
+  %
+  % The right-hand logo used to be ATI-Logo_Small_9x5cm.png, an opaque PNG whose
+  % background sat at 253/255 -- on a white page that paints a faint grey
+  % rectangle around the logo. Run titlepage/clean_logo.py on any raster logo
+  % before using it here: it adds an alpha channel and trims to the ink, so no
+  % frame is left. ATI-Logo_clean.png is that file, already processed.
+  %
+  % To use the ILL logo, save it as titlepage/ILL-Logo.png and run:
+  %     python3 titlepage/clean_logo.py titlepage/ILL-Logo.png
+  % Until then this falls back to the cleaned ATI logo, so the document keeps
+  % compiling either way.
+  \begin{minipage}{0.5\linewidth}
+    \includegraphics[height=1.8cm]{TULogo_neu.pdf}\hfill
+  \end{minipage}
+  \begin{minipage}{0.5\linewidth}
+    \hfill
+    \IfFileExists{titlepage/ILL-Logo.png}
+      {\includegraphics[height=1.5cm]{ILL-Logo.png}}
+      {\includegraphics[height=1.5cm]{ATI-Logo_clean.png}}
+  \end{minipage}%
+  \par
+  \vspace{1.5cm}
+  \centering \LARGE
+  \MakeUppercase{\textbf{\WorkType}} \par
+  \vspace{1.cm}
+  \Huge
+  \textbf{\TitleEN} \par
+  \vspace{1cm}
+  {\large im Rahmen des Studiums} \par
+  \vspace{0.1cm}
+  \Large \textbf{\Studium} \par
+  \vspace{1cm}
+  \text{\large vorgelegt von} \par
+  \vspace{0.1cm}
+  \Large \textbf{\Name} \par
+  \vspace{0.1cm}
+  \text{\large Matrikelnummer:} \large\MatNr \par
+  \vspace{0.5cm}
+  \flushleft \small
+  \text{Durchgeführt am}\par
+  Atominstitut der Fakultät für Physik der Technischen Universität
+  Wien \par
+  in Zusammenarbeit mit \par
+  Institut Laue-Langevin (ILL), Grenoble \par
+  \vspace{0.5cm} Betreuung: \par
+  % Marton's two affiliations do not fit beside his name at this width, so
+  % they sit on their own indented line; the other two fit inline.
+  Begutachter: \Begutachter\ \par
+  \hspace*{1.2em}\UniA \par
+  Betreuer: \Betreuer\ (\UniB) \par
+  Mitwirkung: \Mitwirkung\ (\UniC) \par
+
+  \vspace*{0.7cm}
+
+  % german date, otherwise comment out
+  \selectlanguage{ngerman}
+  Wien, \today \hspace{2cm} \par
+  % englisch again
+  \selectlanguage{english}
+
+\end{titlepage}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "../main"
+%%% End:

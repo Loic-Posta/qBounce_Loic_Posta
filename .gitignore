@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+Code/venv/
+*.egg-info/
+
+# C++ build
+Code/build/
+*.o
+*.so
+*.dylib
+
+# offline install bundle -- rebuilt with pip download, see README section 4
+Code/wheels/
+
+# detector artefacts
+*.bgm
+
+# LaTeX
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+
+# macOS
+.DS_Store
+._*
